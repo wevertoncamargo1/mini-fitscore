@@ -5,6 +5,8 @@ import { computeFitScore } from "../lib/computeFitScore";
 import { supabase } from "../lib/supabase";
 import { useMemo, useState } from "react";
 import {
+  Snackbar,
+  Alert,
   Box,
   Button,
   Typography,
@@ -22,18 +24,22 @@ const BG_DARK = "#0b1a3a"; // fundo (azul escuro)
 const BORDER_BLUE = "#3b82f6"; // borda do card (azul claro)
 
 export default function FormPage() {
+  const [submitted, setSubmitted] = useState(false);
+  const [emailTaken, setEmailTaken] = useState(false);
+  const [emailChecking, setEmailChecking] = useState(false);
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{
-    score: number;
-    classification: string;
-  } | null>(null);
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    type: "success" | "error";
+    message: string;
+  }>({ open: false, type: "success", message: "" });
+
 
   const {
     control,
     register,
     handleSubmit,
-    setValue,
     trigger,
     formState: { errors },
   } = useForm<FitScoreForm>({
@@ -41,16 +47,6 @@ export default function FormPage() {
     defaultValues: {
       name: "",
       email: "",
-      perf_exp: 5,
-      perf_entregas: 5,
-      perf_habs: 5,
-      perf_extra: 5,
-      eng_dispon: 5,
-      eng_prazos: 5,
-      eng_pressao: 5,
-      eng_extra: 5,
-      cult_valores_1: 5,
-      cult_valores_2: 5,
     },
     mode: "onChange",
   });
@@ -60,6 +56,33 @@ export default function FormPage() {
     () => Array.from({ length: 10 }, (_, i) => i + 1),
     []
   );
+  // perto do topo do componente
+  const requiredMsg = "Preencha este campo obrigatório";
+
+  // helper para padronizar texto de erro
+  const getErrorTextFor = (key: keyof FitScoreForm) => {
+    const err = errors[key];
+    if (!err) return undefined;
+    // Para todos os NUMÉRICOS, força a mensagem amigável
+    if (key !== "name" && key !== "email") return requiredMsg;
+    // Para name/email, usa a mensagem do schema (ex.: "E-mail inválido")
+    return (err.message as string) || requiredMsg;
+  };
+
+  async function checkEmailExists(email: string) {
+    const emailNorm = email.trim().toLowerCase();
+    if (!emailNorm) return false;
+    setEmailChecking(true);
+    const { count, error } = await supabase
+      .from("candidates")
+      .select("id", { count: "exact", head: true })
+      .ilike("email", emailNorm); // case-insensitive
+    setEmailChecking(false);
+    if (error) return false; // silenciosamente não bloqueia em erro de rede
+    return (count ?? 0) > 0;
+  }
+
+
 
   // afirmações
   const perfQs: Array<[keyof FitScoreForm, string]> = [
@@ -101,32 +124,47 @@ export default function FormPage() {
 
   const onSubmit = async (values: FitScoreForm) => {
     setLoading(true);
+
     const { score, classification } = computeFitScore(values);
 
     const { data: candidate, error: errC } = await supabase
       .from("candidates")
-      .upsert({ name: values.name, email: values.email })
+      .upsert({ name: values.name, email: values.email }, { onConflict: "email" })
       .select("id")
       .single();
+
     if (errC || !candidate) {
-      alert("Erro ao salvar candidato");
+      setSnackbar({ open: true, type: "error", message: "Temos um erro por aqui" });
       setLoading(false);
       return;
     }
 
+    const { name, email, ...answers } = values;
     const { error: errR } = await supabase.from("fitscore_responses").insert({
       candidate_id: candidate.id,
-      ...values,
+      ...answers,
       score,
       classification,
     });
+
     if (errR) {
-      alert("Erro ao salvar respostas");
+      setSnackbar({ open: true, type: "error", message: "Temos um erro por aqui" });
       setLoading(false);
       return;
     }
 
-    setResult({ score, classification });
+    // sucesso
+    setSnackbar({
+      open: true,
+      type: "success",
+      message: "Candidatura enviada com sucesso",
+    });
+    setLoading(false);
+
+    // espera 3 segundos (tempo do snackbar) e depois mostra a tela de obrigado
+    setTimeout(() => {
+      setSubmitted(true);
+    }, 3000);
     setLoading(false);
   };
 
@@ -137,8 +175,20 @@ export default function FormPage() {
     if (step === 3) fields = engQs.map((q) => q[0]);
     if (step === 4) fields = cultQs.map((q) => q[0]);
 
-    const ok = await trigger(fields as any);
-    if (ok) setStep((s) => s + 1);
+    // valida os campos desta etapa
+    const ok = await trigger(fields as any, { shouldFocus: true });
+    if (!ok) return;
+
+    // se for a etapa 1, checa e-mail antes de avançar
+    if (step === 1) {
+      const formData = new FormData(document.querySelector("form") as HTMLFormElement);
+      const email = String(formData.get("email") || "");
+      const exists = await checkEmailExists(email);
+      setEmailTaken(exists);
+      if (exists) return; // bloqueia avanço
+    }
+
+    setStep((s) => s + 1);
   };
 
   const prevStep = () => setStep((s) => s - 1);
@@ -164,16 +214,15 @@ export default function FormPage() {
             <Select
               {...field}
               label={label}
-              value={field.value ?? 0} // 0 = não selecionado ainda
+              value={field.value ?? ""}          // começa vazio
               displayEmpty
+              onChange={(e) => field.onChange(Number(e.target.value))} // envia número
             >
-              <MenuItem value={0} disabled>
+              <MenuItem value={-1} disabled>
                 Selecione 1–10 (1 = Não concordo · 10 = Concordo plenamente)
               </MenuItem>
               {options.map((n) => (
-                <MenuItem key={n} value={n}>
-                  {n}
-                </MenuItem>
+                <MenuItem key={n} value={n}>{n}</MenuItem>
               ))}
             </Select>
           )}
@@ -182,6 +231,34 @@ export default function FormPage() {
       </FormControl>
     );
   }
+
+  if (submitted) {
+    return (
+      <Box sx={{ minHeight: "100vh", bgcolor: BG_DARK, display: "grid", placeItems: "center", p: 2 }}>
+        <Box
+          sx={{
+            maxWidth: 640,
+            width: "90%",
+            bgcolor: "white",
+            color: "#0b1a3a",
+            borderRadius: 3,
+            border: `2px solid ${BORDER_BLUE}`,
+            boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
+            p: { xs: 3, md: 4 },
+            textAlign: "center",
+          }}
+        >
+          <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
+            Obrigado por sua candidatura
+          </Typography>
+          <Typography variant="body1">
+            Boa sorte! Em breve nosso time entrará em contato.
+          </Typography>
+        </Box>
+      </Box>
+    );
+  }
+
 
   return (
     <Box
@@ -230,7 +307,7 @@ export default function FormPage() {
                 margin="normal"
                 required
                 error={!!errors.name}
-                helperText={errors.name?.message}
+                helperText={getErrorTextFor("name")}
                 {...register("name")}
               />
               <TextField
@@ -239,10 +316,15 @@ export default function FormPage() {
                 fullWidth
                 margin="normal"
                 required
-                error={!!errors.email}
-                helperText={errors.email?.message}
+                error={!!errors.email || emailTaken}
+                helperText={
+                  emailTaken
+                    ? "Este e-mail já foi utilizado nesta avaliação."
+                    : errors.email?.message
+                }
                 {...register("email")}
               />
+
             </>
           )}
 
@@ -257,7 +339,7 @@ export default function FormPage() {
                   control={control}
                   name={f}
                   label={q}
-                  errorText={errors[f]?.message as string | undefined}
+                  errorText={getErrorTextFor(f)}
                 />
               ))}
             </>
@@ -274,7 +356,7 @@ export default function FormPage() {
                   control={control}
                   name={f}
                   label={q}
-                  errorText={errors[f]?.message as string | undefined}
+                  errorText={getErrorTextFor(f)}
                 />
               ))}
             </>
@@ -291,7 +373,7 @@ export default function FormPage() {
                   control={control}
                   name={f}
                   label={q}
-                  errorText={errors[f]?.message as string | undefined}
+                  errorText={getErrorTextFor(f)}
                 />
               ))}
             </>
@@ -321,11 +403,13 @@ export default function FormPage() {
               <Button
                 variant="contained"
                 onClick={nextStep}
+                disabled={emailChecking}          // ← evita múltiplos cliques durante checagem
                 sx={{ bgcolor: BG_DARK }}
               >
-                Próximo
+                {emailChecking ? "Verificando..." : "Próximo"}
               </Button>
             )}
+
 
             {step === 4 && (
               <Button
@@ -339,24 +423,23 @@ export default function FormPage() {
             )}
           </Box>
         </form>
-
-        {result && (
-          <Box
-            sx={{
-              mt: 3,
-              p: 2,
-              border: `1px solid ${BORDER_BLUE}`,
-              borderRadius: 2,
-            }}
-          >
-            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-              Resultado
-            </Typography>
-            <Typography>Score: {result.score}</Typography>
-            <Typography>Classificação: {result.classification}</Typography>
-          </Box>
-        )}
       </Box>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000} // 3 segundos
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }} // canto inferior esquerdo
+      >
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.type}
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+
     </Box>
+
   );
 }
