@@ -2,13 +2,13 @@ import { Box, CircularProgress, Typography, Paper } from "@mui/material";
 import type { ReactNode } from "react";
 import DashboardHeader, { type ViewMode } from "./DashboardHeader";
 import DataTable, { type Column, type RowData } from "./DataTable";
-import CardGrid, { type CardField, type CardItem } from "./CardGrid";
+import CardGrid, { type Field, type Item } from "./CardGrid";
 
 export default function DashboardCard({
   icon, title, rightSlot, loading, error, emptyMessage = "Nenhum registro encontrado.",
   view, onToggleView, onSearch,
   columns, rows,
-  fields, items,
+  fields, items, 
 }: {
   icon?: ReactNode;
   title: string;
@@ -21,8 +21,8 @@ export default function DashboardCard({
   onSearch?: (q: string) => void;
   columns: Column[];
   rows: RowData[];
-  fields: CardField[];
-  items: CardItem[];
+  fields: Field[];
+  items: Item[];
 }) {
   return (
     <Paper sx={{ p:2.5, borderRadius:3, border:"2px solid #3b82f6" }}>

@@ -1,7 +1,7 @@
 import React from 'react';
 
-type Field = { key: string; label: string };
-type Item = Record<string, React.ReactNode>;
+export type Field = { key: string; label: string };
+export type Item = Record<string, React.ReactNode>;
 
 type CardGridProps = {
   fields: Field[];
