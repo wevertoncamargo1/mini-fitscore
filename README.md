@@ -43,7 +43,6 @@ Qualidade: ESLint + Vitest + Storybook
 
 ⚙️ Setup Local
 bash
-Copiar código
 # clone o repo
 git clone <repo-url>
 cd <repo>
@@ -62,9 +61,9 @@ npm run build
 npm run preview
 .env.example
 bash
-Copiar código
 VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
+
 🔐 Decisões de Autenticação
 Formulário → usa anon para inserções (sem login).
 
@@ -82,7 +81,6 @@ Publish directory: dist
 SPA redirect: public/_redirects
 
 bash
-Copiar código
 /*    /index.html   200
 Variáveis no Netlify
 VITE_SUPABASE_URL
@@ -102,26 +100,11 @@ Code → monta HTML com candidatos (nome, email, score, data)
 
 Send Email (SendGrid) → dispara para todos gestores
 
-🧹 Qualidade de Código
-TypeScript com strict ativo.
-
-ESLint configurado com @typescript-eslint.
-
-Scripts:
-
-json
-Copiar código
-{
-  "lint": "eslint 'src/**/*.{ts,tsx}' --max-warnings=0",
-  "build": "tsc --noEmit && vite build",
-  "test": "vitest run"
-}
 🧪 Testes
 Vitest + React Testing Library
 Exemplo:
 
 tsx
-Copiar código
 import { render, screen } from '@testing-library/react'
 import ScoreBadge from '../ScoreBadge'
 
@@ -129,11 +112,11 @@ test('renderiza score', () => {
   render(<ScoreBadge score={85} />)
   expect(screen.getByText(/85/)).toBeInTheDocument()
 })
+
 🎨 Storybook
 Rodar:
 
 bash
-Copiar código
 npm run storybook
 Exemplos implementados:
 
@@ -149,7 +132,6 @@ ScoreBadge
 
 🗄️ Migrations (Supabase CLI)
 bash
-Copiar código
 # inicializar
 npx supabase init
 
@@ -179,4 +161,4 @@ Refinar policies do Supabase para produção.
 Expandir testes automatizados.
 
 👨‍💻 Autor
-Feito com ❤️ por Weverton Souza Camargo.
+Feito por Weverton Souza Camargo.
