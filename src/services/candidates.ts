@@ -17,5 +17,5 @@ export async function upsertCandidate(name: string, email: string) {
     .select("id")
     .single();
   if (error || !data) throw error ?? new Error("candidate upsert failed");
-  return data; // { id }
+  return data;
 }

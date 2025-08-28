@@ -1,34 +1,39 @@
-// src/components/dashboard/CardGrid.tsx
-import Grid from "@mui/material/Grid"; // ⬅️ Grid v1 (default import)
-import { Paper, Box, Typography } from "@mui/material";
-import type { ReactNode } from "react";
+import React from 'react';
 
-export type CardField = { key: string; label: string };
-export type CardItem  = Record<string, ReactNode>;
+type Field = { key: string; label: string };
+type Item = Record<string, React.ReactNode>;
+
+type CardGridProps = {
+  fields: Field[];
+  items: Item[];
+  loading?: boolean;
+  emptyMessage?: string;
+};
 
 export default function CardGrid({
   fields,
   items,
-}: {
-  fields: CardField[];
-  items: CardItem[];
-}) {
+  loading = false,
+  emptyMessage = 'Nenhum registro encontrado.',
+}: CardGridProps) {
+  if (loading) return <div style={{ color: '#fff' }}>Carregando…</div>;
+  if (!items.length) return <div style={{ color: '#fff' }}>{emptyMessage}</div>;
+
   return (
-    <Grid container spacing={1.5}>
-      {items.map((it, idx) => (
-        <Grid item xs={12} sm={6} md={4} key={idx}>
-          <Paper sx={{ p: 1.5, borderRadius: 2 }}>
-            {fields.map((f) => (
-              <Box key={f.key} sx={{ display: "flex", gap: 1, mb: 0.5 }}>
-                <Typography sx={{ fontWeight: 600, minWidth: 110 }}>
-                  {f.label}:
-                </Typography>
-                <Box sx={{ flex: 1 }}>{it[f.key]}</Box>
-              </Box>
-            ))}
-          </Paper>
-        </Grid>
+    <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
+      {items.map((item, idx) => (
+        <div key={idx} style={{ background: '#0d1f49', border: '1px solid #203261', borderRadius: 12, padding: 12 }}>
+          {fields.map(f => {
+            const val = item[f.key] as React.ReactNode; // <- aceita componente também
+            return (
+              <div key={f.key} style={{ marginBottom: 8 }}>
+                <div style={{ fontSize: 12, opacity: 0.7 }}>{f.label}</div>
+                <div style={{ fontWeight: 600 }}>{val ?? '—'}</div>
+              </div>
+            );
+          })}
+        </div>
       ))}
-    </Grid>
+    </div>
   );
 }

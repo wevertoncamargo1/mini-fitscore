@@ -40,7 +40,6 @@ export default function DashboardPage() {
     return byClass.filter(r => r.name.toLowerCase().includes(s) || r.email.toLowerCase().includes(s));
   }, [byClass, q]);
 
-  // Tabela
   const columns = [
     { key:"name",           label:"Nome" },
     { key:"email",          label:"E-mail" },
@@ -56,9 +55,8 @@ export default function DashboardPage() {
     created_at: new Date(r.created_at).toLocaleString(),
   }));
 
-  // Grade (usa os mesmos dados, só muda a renderização em cards)
-  const fields = columns; // pode customizar rótulos/ordem se quiser
-  const items  = rows;    // reaproveita o mapeamento acima
+  const fields = columns; 
+  const items  = rows;    
 
   return (
     <div style={{ minHeight:"100vh", background:"#0b1a3a", padding:"1.5rem" }}>

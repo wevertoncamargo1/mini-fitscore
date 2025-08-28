@@ -7,8 +7,8 @@ import CardGrid, { type CardField, type CardItem } from "./CardGrid";
 export default function DashboardCard({
   icon, title, rightSlot, loading, error, emptyMessage = "Nenhum registro encontrado.",
   view, onToggleView, onSearch,
-  columns, rows, // para tabela
-  fields, items, // para grid
+  columns, rows,
+  fields, items,
 }: {
   icon?: ReactNode;
   title: string;

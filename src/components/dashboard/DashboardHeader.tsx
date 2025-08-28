@@ -11,7 +11,7 @@ export default function DashboardHeader({
   icon?: ReactNode;
   title: string;
   onSearch?: (q: string) => void;
-  rightSlot?: ReactNode;           // ex.: <ClassificationSelect .../>
+  rightSlot?: ReactNode;          
   view: ViewMode;
   onToggleView: (next: ViewMode) => void;
 }) {

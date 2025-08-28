@@ -1,9 +1,9 @@
 import { useCallback, useState } from "react";
 
 export type StepConfig = {
-  id: number;                             // 1..N
-  validate?: () => Promise<boolean> | boolean; // validação da etapa (ex: trigger([...]))
-  beforeNext?: () => Promise<boolean> | boolean; // checagens extras (ex: e-mail único)
+  id: number;                            
+  validate?: () => Promise<boolean> | boolean; 
+  beforeNext?: () => Promise<boolean> | boolean; 
 };
 
 export function useMultiStepForm(steps: StepConfig[], start = 1) {
@@ -14,12 +14,10 @@ export function useMultiStepForm(steps: StepConfig[], start = 1) {
   const next = useCallback(async () => {
     if (!current) return;
 
-    // valida a etapa atual, se definido
     if (current.validate) {
       const ok = await current.validate();
       if (!ok) return false;
     }
-    // checagens adicionais (ex.: e-mail) antes de avançar
     if (current.beforeNext) {
       const ok = await current.beforeNext();
       if (!ok) return false;
