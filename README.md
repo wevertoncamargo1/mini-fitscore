@@ -21,14 +21,19 @@ O **Mini FitScore** é uma aplicação que permite:
 ## 🏗️ Arquitetura
 
 ```mermaid
-
-
 flowchart TD
-  A[Usuário] -->|Formulário Público| B[(Supabase - candidates / fitscore_responses)]
-  B --> C[v_last_fitscore (View)]
-  C --> D[Dashboard (React + Vite)]
-  C --> E[n8n Workflow]
-  E -->|a cada 8h| F[SendGrid / E-mails Gestores]
+  A[Usuário]
+  B[(Supabase: candidates / fitscore_responses)]
+  C[[v_last_fitscore view]]
+  D[Dashboard React + Vite]
+  E[n8n Workflow]
+  F[SendGrid / E-mails Gestores]
+
+  A -->|Formulário público| B
+  B --> C
+  C --> D
+  C --> E
+  E -->|a cada 8h | F[SendGrid / E-mails Gestores]
 
 🚀 Stack
 Frontend: React + TypeScript + Vite + Material UI
