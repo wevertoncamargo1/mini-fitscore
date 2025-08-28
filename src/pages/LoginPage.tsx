@@ -1,47 +1,54 @@
-import { useState } from "react";
-import { supabase } from "../lib/supabase";
-import { Box, Button, TextField, Typography } from "@mui/material";
+import { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import AuthShell from '../components/auth/AuthShell';
+import { useAuth } from '../hooks/useAuth';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [sending, setSending] = useState(false);
-  const [sent, setSent] = useState(false);
+  const { signIn } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation() as any;
+  const from = location.state?.from?.pathname || '/dashboard';
 
-  const handleLogin = async (e: React.FormEvent) => {
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setSending(true);
-    const { error } = await supabase.auth.signInWithOtp({ email, options:{ emailRedirectTo: window.location.origin } });
-    setSending(false);
-    if (!error) setSent(true);
-    else alert("Falha ao enviar link. Tente novamente.");
-  };
+    setBusy(true); setErr(null);
+    const { error } = await signIn(email, password);
+    setBusy(false);
+    if (error) setErr(error.message);
+    else navigate(from, { replace: true });
+  }
 
   return (
-    <Box sx={{ minHeight:"100vh", display:"grid", placeItems:"center", bgcolor:"#0b1a3a", p:2 }}>
-      <Box sx={{ width:"90%", maxWidth:420, bgcolor:"white", p:3, borderRadius:3, border:"2px solid #3b82f6" }}>
-        <Typography variant="h5" fontWeight={700} mb={1}>Entrar</Typography>
-        <Typography variant="body2" color="text.secondary" mb={2}>
-          Digite seu e-mail e enviaremos um link de acesso.
-        </Typography>
-        {sent ? (
-          <Typography>Verifique seu e-mail. Abra o link para continuar.</Typography>
-        ) : (
-          <form onSubmit={handleLogin}>
-            <TextField
-              label="E-mail"
-              type="email"
-              fullWidth
-              required
-              value={email}
-              onChange={(e)=>setEmail(e.target.value)}
-              margin="normal"
-            />
-            <Button type="submit" variant="contained" fullWidth disabled={sending}>
-              {sending ? "Enviando..." : "Enviar link de acesso"}
-            </Button>
-          </form>
-        )}
-      </Box>
-    </Box>
+    <AuthShell title="Entrar">
+      <form onSubmit={onSubmit} style={{ display: 'grid', gap: 12 }}>
+        <input
+          placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)}
+          style={ip} autoComplete="email"
+        />
+        <input
+          placeholder="Senha" type="password" value={password} onChange={e=>setPassword(e.target.value)}
+          style={ip} autoComplete="current-password"
+        />
+        {err && <div style={{ color:'#ffb4b4', fontSize:13 }}>{err}</div>}
+        <button type="submit" disabled={busy}
+          style={{ ...btn, opacity: busy ? .7 : 1 }}>{busy ? 'Entrando...' : 'Entrar'}</button>
+      </form>
+      <div style={{ marginTop: 14, fontSize: 14, opacity: .9 }}>
+        Não tem conta? <Link to="/register" style={{ color:'#9fd1ff' }}>Criar conta</Link>
+      </div>
+    </AuthShell>
   );
 }
+
+const ip: React.CSSProperties = {
+  padding: '12px 14px', borderRadius: 10, border: '1px solid #2a3b6a',
+  background: '#0d1f49', color: '#fff', outline: 'none'
+};
+const btn: React.CSSProperties = {
+  padding: '12px 14px', borderRadius: 10, border: '0', cursor: 'pointer',
+  background: '#2e72ff', color: '#fff', fontWeight: 600
+};
